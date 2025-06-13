@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carrera GPS - MapLibre GL</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>Carrera GPS</h1>
+            <div class="controls">
+                <button id="startBtn">Iniciar Carrera</button>
+                <button id="stopBtn" disabled>Detener</button>
+                <button id="multiplayerBtn">Multijugador</button>
+            </div>
+        </div>
+        
+        <div class="map-container">
+            <div id="runnerMap" class="map"></div>
+            <div id="spectatorMap" class="map hidden"></div>
+        </div>
+        
+        <div class="stats">
+            <div>Distancia: <span id="distance">0.00</span> km</div>
+            <div>Velocidad: <span id="speed">0.00</span> km/h</div>
+            <div>Tiempo: <span id="time">00:00:00</span></div>
+        </div>
+        
+        <div class="multiplayer-panel hidden" id="multiplayerPanel">
+            <h2>Multijugador</h2>
+            <input type="text" id="raceCode" placeholder="Código de carrera">
+            <button id="joinRaceBtn">Unirse a Carrera</button>
+            <button id="createRaceBtn">Crear Carrera</button>
+            <button id="spectateRaceBtn">Espectar Carrera</button>
+            <div id="participantsList"></div>
+        </div>
+    </div>
+    
+    <script src="app.js"></script>
+</body>
+</html>
