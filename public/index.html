@@ -3,45 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carrera GPS - MapLibre GL</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
+    <title>Carrera GPS Mejorada</title>
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+        #stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        .stat {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        #speed { color: #e74c3c; }
+        #distance { color: #2ecc71; }
+        #time { color: #3498db; }
+    </style>
 </head>
 <body>
-    <div class="app-container">
-        <div class="header">
-            <h1>Carrera GPS</h1>
-            <div class="controls">
-                <button id="startBtn">Iniciar Carrera</button>
-                <button id="stopBtn" disabled>Detener</button>
-                <button id="multiplayerBtn">Multijugador</button>
-            </div>
-        </div>
-        
-        <div class="map-container">
-            <div id="runnerMap" class="map"></div>
-            <div id="spectatorMap" class="map hidden"></div>
-        </div>
-        
-        <div class="stats">
-            <div>Distancia: <span id="distance">0.00</span> km</div>
-            <div>Velocidad: <span id="speed">0.00</span> km/h</div>
-            <div>Tiempo: <span id="time">00:00:00</span></div>
-        </div>
-        
-        <div class="multiplayer-panel hidden" id="multiplayerPanel">
-            <h2>Multijugador</h2>
-            <input type="text" id="raceCode" placeholder="Código de carrera">
-            <button id="joinRaceBtn">Unirse a Carrera</button>
-            <button id="createRaceBtn">Crear Carrera</button>
-            <button id="spectateRaceBtn">Espectar Carrera</button>
-            <div id="participantsList"></div>
-        </div>
+    <div id="map"></div>
+    <div id="stats">
+        <div class="stat">Velocidad: <span id="speed">0.0</span> km/h</div>
+        <div class="stat">Distancia: <span id="distance">0.00</span> km</div>
+        <div class="stat">Tiempo: <span id="time">00:00:00</span></div>
     </div>
-    
     <script src="app.js"></script>
 </body>
 </html>
