@@ -3,32 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carrera GPS - Vista Satelital</title>
-    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <title>Running Tracker - Multijugador</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
+    <!-- Font Awesome (iconos) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div id="map"></div>
-    <div id="stats">
-        <div class="stat-box">
-            <span class="stat-value" id="speed">0.0</span>
-            <span class="stat-label">km/h</span>
+    
+    <!-- Panel de Control -->
+    <div id="controls">
+        <div class="metric-box">
+            <i class="fas fa-route"></i>
+            <span id="distance">0.00 km</span>
         </div>
-        <div class="stat-box">
-            <span class="stat-value" id="distance">0.00</span>
-            <span class="stat-label">km</span>
+        <div class="metric-box">
+            <i class="fas fa-tachometer-alt"></i>
+            <span id="speed">0.0 km/h</span>
         </div>
-        <div class="stat-box">
-            <span class="stat-value" id="time">00:00:00</span>
+        <div class="metric-box">
+            <i class="fas fa-clock"></i>
+            <span id="time">00:00:00</span>
+        </div>
+        
+        <button id="multiplayer-btn" class="control-btn">
+            <i class="fas fa-users"></i> Multijugador: OFF
+        </button>
+        
+        <div id="multiplayer-controls" class="hidden">
+            <input type="text" id="room-id" placeholder="ID de Sala">
+            <button id="join-room" class="control-btn">
+                <i class="fas fa-door-open"></i> Unirse
+            </button>
+            <div id="players-list" class="players-list"></div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="center-btn" class="control-btn">
+                <i class="fas fa-location-arrow"></i> Centrar
+            </button>
+            <button id="export-gpx" class="control-btn">
+                <i class="fas fa-download"></i> GPX
+            </button>
+            <button id="stats-btn" class="control-btn">
+                <i class="fas fa-chart-bar"></i> Stats
+            </button>
         </div>
     </div>
-    <div id="map-controls">
-        <button onclick="changeMapStyle('satellite')">Satélite</button>
-        <button onclick="changeMapStyle('streets')">Carreteras</button>
-        <button onclick="changeMapStyle('hybrid')">Híbrido</button>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- Socket.io -->
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- Leaflet.Offline (opcional) -->
+    <script src="https://unpkg.com/leaflet.offline@2.1.0/dist/leaflet.offline.min.js"></script>
+    <!-- JS Personalizado -->
+    <script src="js/socket.js"></script>
+    <script src="js/app.js"></script>
+    <div id="footer">
+    <a href="licenses.html">Licencias</a> | © 2023 Running Tracker
     </div>
-    <script src="app.js"></script>
 </body>
 </html>
