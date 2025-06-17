@@ -1,0 +1,164 @@
+/* Estilos Base */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+/* Panel de Control */
+#controls {
+    position: absolute;
+    bottom: 20px;
+    left: 10px;
+    right: 10px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 10px;
+    border-radius: 10px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.metric-box {
+    background: #2c3e50;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    min-width: 80px;
+    text-align: center;
+    flex-grow: 1;
+}
+
+.metric-box i {
+    margin-right: 5px;
+}
+
+#distance, #speed, #time {
+    font-weight: bold;
+}
+
+/* Botones */
+.control-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-grow: 1;
+}
+
+.control-btn:hover {
+    background: #2980b9;
+}
+
+.control-btn i {
+    font-size: 14px;
+}
+
+#multiplayer-btn {
+    background: #e74c3c;
+    width: 100%;
+}
+
+#multiplayer-btn[data-active="true"] {
+    background: #2ecc71;
+}
+
+/* Controles Multijugador */
+#multiplayer-controls {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 5px;
+}
+
+#room-id {
+    flex-grow: 2;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Lista de Jugadores */
+.players-list {
+    width: 100%;
+    max-height: 150px;
+    overflow-y: auto;
+    margin-top: 10px;
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+.player-item {
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+}
+
+.player-item:last-child {
+    border-bottom: none;
+}
+
+.player-item::before {
+    content: "";
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background: #3498db;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+/* Panel de Estadísticas */
+.stats-panel {
+    background: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    max-width: 250px;
+}
+
+.stats-panel h3 {
+    margin-top: 0;
+    color: #2c3e50;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+    #controls {
+        width: 300px;
+        left: 20px;
+        right: auto;
+        bottom: 20px;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        width: 100%;
+    }
+    }
