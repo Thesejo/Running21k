@@ -7,127 +7,73 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Almacenamiento en memoria
-const races = {};
-const MAX_RACE_AGE_MS = 24 * 60 * 60 * 1000; // 24 horas
+// Configuración básica
+const PORT = process.env.PORT || 3000;
 
 // Servir archivos estáticos
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Endpoint básico
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// Manejo de salas multijugador
+const rooms = {};
 
-// Limpiar carreras antiguas periódicamente
-setInterval(cleanupOldRaces, 60 * 60 * 1000); // Cada hora
-
-// Configurar Socket.io
 io.on('connection', (socket) => {
-    console.log('Nuevo cliente conectado:', socket.id);
-    
-    socket.on('createRace', ({ userId, userName }) => {
-        const raceId = generateRaceCode();
-        races[raceId] = {
-            id: raceId,
-            created: new Date(),
-            participants: {
-                [userId]: { name: userName, joined: new Date() }
-            },
-            positions: {},
-            spectators: []
-        };
-        
-        socket.join(raceId);
-        socket.emit('raceCreated', { raceId });
-        updateRaceParticipants(raceId);
-    });
-    
-    socket.on('joinRace', ({ raceId, userId, userName }) => {
-        if (!races[raceId]) {
-            return socket.emit('error', { message: 'Carrera no encontrada' });
+    console.log(`Nuevo cliente conectado: ${socket.id}`);
+
+    // Unirse a una sala
+    socket.on('joinRoom', (roomId) => {
+        if (!rooms[roomId]) {
+            rooms[roomId] = { players: {} };
         }
+
+        socket.join(roomId);
+        rooms[roomId].players[socket.id] = { position: [0, 0] };
         
-        races[raceId].participants[userId] = { 
-            name: userName, 
-            joined: new Date() 
-        };
+        // Notificar al cliente
+        socket.emit('roomJoined', roomId);
         
-        socket.join(raceId);
-        socket.emit('raceJoined', { raceId });
-        updateRaceParticipants(raceId);
+        // Notificar a otros jugadores
+        socket.to(roomId).emit('playerJoined', socket.id, rooms[roomId].players[socket.id]);
+        
+        // Enviar lista de jugadores al nuevo miembro
+        io.to(socket.id).emit('currentPlayers', rooms[roomId].players);
     });
-    
-    socket.on('spectateRace', ({ raceId, userId }) => {
-        if (!races[raceId]) {
-            return socket.emit('error', { message: 'Carrera no encontrada' });
-        }
+
+    // Actualización de posición
+    socket.on('playerUpdate', (data) => {
+        const roomId = [...socket.rooms][1]; // Obtener la sala (el primer room es el propio socket.id)
         
-        if (!races[raceId].spectators.includes(userId)) {
-            races[raceId].spectators.push(userId);
+        if (roomId && rooms[roomId]?.players[socket.id]) {
+            rooms[roomId].players[socket.id] = {
+                ...rooms[roomId].players[socket.id],
+                position: data.position,
+                distance: data.distance,
+                speed: data.speed
+            };
+            
+            // Transmitir a otros jugadores
+            socket.to(roomId).emit('playerUpdate', socket.id, data);
         }
-        
-        socket.join(raceId);
-        socket.emit('spectatorJoined', { raceId });
-        updateRaceParticipants(raceId);
     });
-    
-    socket.on('updatePosition', (positionData) => {
-        const { raceId, userId, lat, lng } = positionData;
-        
-        if (!races[raceId]) {
-            return socket.emit('error', { message: 'Carrera no encontrada' });
-        }
-        
-        races[raceId].positions[userId] = { 
-            lat, 
-            lng,
-            timestamp: new Date(),
-            speed: positionData.speed,
-            distance: positionData.distance
-        };
-        
-        // Enviar actualización a todos en la carrera
-        io.to(raceId).emit('positionUpdate', { 
-            positions: races[raceId].positions 
-        });
-    });
-    
+
+    // Desconexión
     socket.on('disconnect', () => {
-        console.log('Cliente desconectado:', socket.id);
-        // Podrías añadir lógica para manejar desconexiones aquí
+        const roomId = [...socket.rooms][1];
+        
+        if (roomId && rooms[roomId]?.players[socket.id]) {
+            // Notificar a otros jugadores
+            socket.to(roomId).emit('playerLeft', socket.id);
+            
+            // Eliminar de la sala
+            delete rooms[roomId].players[socket.id];
+            
+            // Eliminar sala si está vacía
+            if (Object.keys(rooms[roomId].players).length === 0) {
+                delete rooms[roomId];
+            }
+        }
     });
 });
 
-function updateRaceParticipants(raceId) {
-    if (!races[raceId]) return;
-    
-    io.to(raceId).emit('participantsUpdate', {
-        participants: races[raceId].participants
-    });
-}
-
-function cleanupOldRaces() {
-    const now = new Date();
-    const threshold = new Date(now - MAX_RACE_AGE_MS);
-    
-    for (const raceId in races) {
-        if (new Date(races[raceId].created) < threshold) {
-            delete races[raceId];
-            console.log(`Carrera ${raceId} eliminada por inactividad`);
-        }
-    }
-}
-
-function generateRaceCode() {
-    let code;
-    do {
-        code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    } while (races[code]);
-    return code;
-}
-
-const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
 });
