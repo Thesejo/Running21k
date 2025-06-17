@@ -35,6 +35,9 @@ const playersList = document.getElementById('players-list');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
+const centerBtn = document.getElementById('center-btn');
+const exportBtn = document.getElementById('export-gpx');
+const statsBtn = document.getElementById('stats-btn');
 const zoomInBtn = document.getElementById('zoom-in');
 const zoomOutBtn = document.getElementById('zoom-out');
 
@@ -44,10 +47,13 @@ joinRoomBtn.addEventListener('click', joinRoom);
 startBtn.addEventListener('click', startTracking);
 pauseBtn.addEventListener('click', pauseTracking);
 stopBtn.addEventListener('click', stopTracking);
+centerBtn.addEventListener('click', centerMap);
+exportBtn.addEventListener('click', exportGPX);
+statsBtn.addEventListener('click', showStats);
 zoomInBtn.addEventListener('click', () => map.zoomIn());
 zoomOutBtn.addEventListener('click', () => map.zoomOut());
 
-// Control del tracking
+// Funciones de Tracking
 function startTracking() {
     if (isTracking && !isPaused) return;
     
@@ -89,14 +95,29 @@ function resetTrackingData() {
     updateUI();
 }
 
+// Funciones de ayuda
 function startWatchingPosition() {
     if (trackingWatchId) {
         navigator.geolocation.clearWatch(trackingWatchId);
     }
     
     trackingWatchId = navigator.geolocation.watchPosition(
-        handlePositionUpdate,
-        handleGeolocationError,
+        position => {
+            const coords = [position.coords.latitude, position.coords.longitude];
+            updatePosition(coords, position.coords.speed);
+            
+            if (multiplayerMode && socket) {
+                socket.emit('playerUpdate', {
+                    position: coords,
+                    distance: totalDistance,
+                    speed: position.coords.speed ? (position.coords.speed * 3.6).toFixed(1) : '0.0'
+                });
+            }
+        },
+        error => {
+            console.error("Error GPS:", error);
+            alert(`Error de GPS: ${error.message}`);
+        },
         { 
             enableHighAccuracy: true,
             maximumAge: 1000,
@@ -112,19 +133,7 @@ function stopWatchingPosition() {
     }
 }
 
-function handlePositionUpdate(position) {
-    const coords = [position.coords.latitude, position.coords.longitude];
-    const speed = position.coords.speed || 0;
-    
-    updatePlayerPosition(coords, speed);
-    updateMapView(coords);
-    
-    if (multiplayerMode && socket) {
-        sendPlayerUpdate(coords, speed);
-    }
-}
-
-function updatePlayerPosition(coords, speed) {
+function updatePosition(coords, speed) {
     // Calcular distancia
     if (path.length > 0) {
         const lastPos = path[path.length - 1];
@@ -138,9 +147,13 @@ function updatePlayerPosition(coords, speed) {
     
     // Actualizar UI
     updateUI(speed);
+    
+    // Centrar mapa si no está pausado
+    if (!isPaused) {
+        map.setView(coords, map.getZoom(), { animate: true, duration: 0.5 });
+    }
 }
 
-// Funciones de ayuda
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const φ1 = lat1 * Math.PI/180;
@@ -177,15 +190,6 @@ function updateUI(speed = 0) {
     document.getElementById('speed').textContent = (speed * 3.6).toFixed(1) + ' km/h';
 }
 
-function updateMapView(coords) {
-    if (!isPaused) {
-        map.setView(coords, map.getZoom(), {
-            animate: true,
-            duration: 0.5
-        });
-    }
-}
-
 function updateControlButtons() {
     startBtn.disabled = isTracking && !isPaused;
     pauseBtn.disabled = !isTracking || isPaused;
@@ -194,6 +198,15 @@ function updateControlButtons() {
     startBtn.innerHTML = isTracking && isPaused ? 
         '<i class="fas fa-redo"></i> Reanudar' : 
         '<i class="fas fa-play"></i> Inicio';
+}
+
+// Funciones de mapa
+function centerMap() {
+    if (playerMarker.getLatLng().lat !== 0) {
+        map.setView(playerMarker.getLatLng(), 17, { animate: true });
+    } else {
+        alert("Esperando posición GPS...");
+    }
 }
 
 // Funciones multijugador
@@ -229,12 +242,60 @@ function clearOtherPlayers() {
     updatePlayersList();
 }
 
-function sendPlayerUpdate(coords, speed) {
-    socket.emit('playerUpdate', {
-        position: coords,
-        distance: totalDistance,
-        speed: (speed * 3.6).toFixed(1)
+function updatePlayersList() {
+    playersList.innerHTML = '';
+    Object.entries(otherPlayers).forEach(([id, player]) => {
+        const playerElement = document.createElement('div');
+        playerElement.className = 'player-item';
+        playerElement.textContent = player.name;
+        playersList.appendChild(playerElement);
     });
+}
+
+// Funciones adicionales
+function exportGPX() {
+    if (path.length === 0) {
+        alert("No hay ruta para exportar");
+        return;
+    }
+
+    const gpx = `<?xml version="1.0"?>
+    <gpx xmlns="http://www.topografix.com/GPX/1/1">
+        <trk><name>Mi Ruta</name><trkseg>
+        ${path.map(p => `<trkpt lat="${p[0]}" lon="${p[1]}"/>`).join('')}
+        </trkseg></trk>
+    </gpx>`;
+
+    downloadFile(gpx, 'ruta.gpx', 'application/gpx+xml');
+}
+
+function showStats() {
+    if (!startTime || path.length < 2) {
+        alert("No hay datos suficientes");
+        return;
+    }
+
+    const elapsed = (new Date() - startTime) / 1000;
+    const distanceKm = totalDistance / 1000;
+    const avgSpeed = distanceKm / (elapsed / 3600);
+    const pace = elapsed / distanceKm;
+
+    alert(`📊 Estadísticas\n
+Distancia: ${distanceKm.toFixed(2)} km\n
+Velocidad promedio: ${avgSpeed.toFixed(2)} km/h\n
+Ritmo: ${Math.floor(pace / 60)}:${Math.floor(pace % 60).toString().padStart(2, '0')} min/km\n
+Tiempo: ${document.getElementById('time').textContent}`);
+}
+
+function downloadFile(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
 }
 
 // Socket.io Handlers
@@ -275,16 +336,6 @@ socket.on('playerLeft', (playerId) => {
         updatePlayersList();
     }
 });
-
-function updatePlayersList() {
-    playersList.innerHTML = '';
-    Object.entries(otherPlayers).forEach(([id, player]) => {
-        const playerElement = document.createElement('div');
-        playerElement.className = 'player-item';
-        playerElement.textContent = player.name;
-        playersList.appendChild(playerElement);
-    });
-}
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
