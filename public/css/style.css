@@ -1,6 +1,8 @@
+/* Estilos Base */
 body {
     margin: 0;
-    font-family: Arial, sans-serif;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 #map {
@@ -8,63 +10,158 @@ body {
     top: 0;
     bottom: 0;
     width: 100%;
+    z-index: 1;
 }
 
+/* Panel de Control */
 #controls {
     position: fixed;
-    bottom: 10px;
+    bottom: 15px;
     left: 10px;
     right: 10px;
-    background: rgba(255,255,255,0.9);
-    padding: 10px;
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 12px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    z-index: 1000;
 }
 
+/* Métricas */
 .metric-box {
     background: #2c3e50;
     color: white;
-    padding: 8px;
+    padding: 10px 12px;
     border-radius: 8px;
-    flex: 1;
     min-width: 80px;
     text-align: center;
+    flex: 1;
 }
 
+.metric-box i {
+    margin-right: 5px;
+}
+
+#distance, #speed, #time {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+/* Controles de Tracking */
 .tracking-controls {
-    display: flex;
-    gap: 5px;
     width: 100%;
+    display: flex;
+    gap: 6px;
+    margin: 5px 0;
 }
 
 .tracking-controls button {
     flex: 1;
     padding: 10px;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
     font-weight: bold;
+    color: white;
 }
 
-#start-btn { background: #27ae60; color: white; }
-#pause-btn { background: #f39c12; color: white; }
-#stop-btn { background: #e74c3c; color: white; }
+#start-btn { background: #27ae60; }
+#start-btn:hover { background: #2ecc71; }
+#start-btn:disabled { background: #7f8c8d; }
 
-.player-marker {
-    width: 20px;
-    height: 20px;
-    background: #e74c3c;
+#pause-btn { background: #f39c12; }
+#pause-btn:hover { background: #f1c40f; }
+#pause-btn:disabled { background: #bdc3c7; }
+
+#stop-btn { background: #e74c3c; }
+#stop-btn:hover { background: #c0392b; }
+#stop-btn:disabled { background: #e0e0e0; }
+
+/* Multijugador */
+#multiplayer-btn {
+    width: 100%;
+    background: #9b59b6;
+    color: white;
+}
+
+#multiplayer-btn:hover {
+    background: #8e44ad;
+}
+
+#multiplayer-controls {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.room-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 8px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.join-btn {
+    width: 100%;
+    background: #3498db;
+    color: white;
+}
+
+.players-list {
+    max-height: 120px;
+    overflow-y: auto;
+    margin-top: 8px;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+/* Botones de Acción */
+.action-buttons {
+    width: 100%;
+    display: flex;
+    gap: 6px;
+}
+
+.action-buttons button {
+    flex: 1;
+    padding: 10px;
+    background: #3498db;
+    color: white;
+}
+
+/* Controles de Zoom */
+.zoom-controls {
+    position: fixed;
+    top: 80px;
+    right: 15px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    background: white;
+    border: none;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    font-size: 16px;
 }
 
-.other-player-marker {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 0 5px rgba(0,0,0,0.5);
-}
+/* Responsive */
+@media (min-width: 768px) {
+    #controls {
+        width: 320px;
+        left: 20px;
+        right: auto;
+    }
+    
+    .tracking-controls button,
+    .action-buttons button {
+        padding: 12px;
+    }
+        }
