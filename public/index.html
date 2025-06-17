@@ -3,38 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carrera GPS Mejorada</title>
+    <title>Carrera GPS - Vista Satelital</title>
     <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
-    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" rel="stylesheet">
     <script src="/socket.io/socket.io.js"></script>
-    <style>
-        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
-        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
-        #stats {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 5px;
-            z-index: 1;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-        }
-        .stat {
-            margin: 5px 0;
-            font-weight: bold;
-        }
-        #speed { color: #e74c3c; }
-        #distance { color: #2ecc71; }
-        #time { color: #3498db; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="map"></div>
     <div id="stats">
-        <div class="stat">Velocidad: <span id="speed">0.0</span> km/h</div>
-        <div class="stat">Distancia: <span id="distance">0.00</span> km</div>
-        <div class="stat">Tiempo: <span id="time">00:00:00</span></div>
+        <div class="stat-box">
+            <span class="stat-value" id="speed">0.0</span>
+            <span class="stat-label">km/h</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value" id="distance">0.00</span>
+            <span class="stat-label">km</span>
+        </div>
+        <div class="stat-box">
+            <span class="stat-value" id="time">00:00:00</span>
+        </div>
+    </div>
+    <div id="map-controls">
+        <button onclick="changeMapStyle('satellite')">Satélite</button>
+        <button onclick="changeMapStyle('streets')">Carreteras</button>
+        <button onclick="changeMapStyle('hybrid')">Híbrido</button>
     </div>
     <script src="app.js"></script>
 </body>
