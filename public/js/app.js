@@ -1,10 +1,11 @@
 // Configuración inicial del mapa
 const map = L.map('map').setView([19.4326, -99.1332], 15);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap'
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
 }).addTo(map);
 
-// Variables globales
+// Variables de estado
 let path = [];
 let totalDistance = 0;
 let startTime = null;
@@ -14,21 +15,16 @@ let isPaused = false;
 let trackingWatchId = null;
 let multiplayerMode = false;
 let otherPlayers = {};
-const playerIcon = L.divIcon({
-    className: 'player-icon',
-    html: '<div class="player-marker"></div>',
-    iconSize: [24, 24]
-});
+let socket = io();
 
 // Elementos del jugador
-const playerMarker = L.marker([0, 0], { 
-    icon: playerIcon,
-    zIndexOffset: 1000
-}).addTo(map);
-const playerRoute = L.polyline([], { 
-    color: '#e74c3c', 
-    weight: 5 
-}).addTo(map);
+const playerIcon = L.divIcon({
+    className: 'player-icon',
+    html: '<div style="background:#e74c3c;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
+    iconSize: [26, 26]
+});
+const playerMarker = L.marker([0, 0], { icon: playerIcon }).addTo(map);
+const playerRoute = L.polyline([], { color: '#e74c3c', weight: 5 }).addTo(map);
 
 // Elementos UI
 const multiplayerBtn = document.getElementById('multiplayer-btn');
@@ -39,112 +35,206 @@ const playersList = document.getElementById('players-list');
 const startBtn = document.getElementById('start-btn');
 const pauseBtn = document.getElementById('pause-btn');
 const stopBtn = document.getElementById('stop-btn');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
 
-// Iniciar seguimiento GPS
+// Eventos
+multiplayerBtn.addEventListener('click', toggleMultiplayerMode);
+joinRoomBtn.addEventListener('click', joinRoom);
+startBtn.addEventListener('click', startTracking);
+pauseBtn.addEventListener('click', pauseTracking);
+stopBtn.addEventListener('click', stopTracking);
+zoomInBtn.addEventListener('click', () => map.zoomIn());
+zoomOutBtn.addEventListener('click', () => map.zoomOut());
+
+// Control del tracking
 function startTracking() {
     if (isTracking && !isPaused) return;
     
     if (!isTracking) {
-        path = [];
-        totalDistance = 0;
+        resetTrackingData();
         startTime = new Date();
-        playerRoute.setLatLngs([]);
-        updateUI();
     }
     
     isTracking = true;
     isPaused = false;
     
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(updateTimer, 1000);
+    startTimer();
+    startWatchingPosition();
+    updateControlButtons();
+}
+
+function pauseTracking() {
+    if (!isTracking) return;
     
+    isPaused = true;
+    stopWatchingPosition();
+    clearInterval(timerInterval);
+    updateControlButtons();
+}
+
+function stopTracking() {
+    isTracking = false;
+    isPaused = false;
+    stopWatchingPosition();
+    clearInterval(timerInterval);
+    resetTrackingData();
+    updateControlButtons();
+}
+
+function resetTrackingData() {
+    path = [];
+    totalDistance = 0;
+    playerRoute.setLatLngs([]);
+    updateUI();
+}
+
+function startWatchingPosition() {
     if (trackingWatchId) {
         navigator.geolocation.clearWatch(trackingWatchId);
     }
     
     trackingWatchId = navigator.geolocation.watchPosition(
-        position => {
-            const coords = [position.coords.latitude, position.coords.longitude];
-            updatePosition(coords, position.coords.speed);
-            
-            if (multiplayerMode && socket) {
-                socket.emit('playerUpdate', {
-                    position: coords,
-                    distance: totalDistance,
-                    speed: position.coords.speed ? (position.coords.speed * 3.6).toFixed(1) : '0.0'
-                });
-            }
-        },
-        error => {
-            console.error("Error GPS:", error);
-            alert(`Error de GPS: ${error.message}`);
-        },
+        handlePositionUpdate,
+        handleGeolocationError,
         { 
             enableHighAccuracy: true,
             maximumAge: 1000,
             timeout: 5000 
         }
     );
-    
-    updateControlButtons();
 }
 
-function updatePosition(coords, speed) {
-    // Actualizar marcador
-    playerMarker.setLatLng(coords);
+function stopWatchingPosition() {
+    if (trackingWatchId) {
+        navigator.geolocation.clearWatch(trackingWatchId);
+        trackingWatchId = null;
+    }
+}
+
+function handlePositionUpdate(position) {
+    const coords = [position.coords.latitude, position.coords.longitude];
+    const speed = position.coords.speed || 0;
     
+    updatePlayerPosition(coords, speed);
+    updateMapView(coords);
+    
+    if (multiplayerMode && socket) {
+        sendPlayerUpdate(coords, speed);
+    }
+}
+
+function updatePlayerPosition(coords, speed) {
     // Calcular distancia
     if (path.length > 0) {
         const lastPos = path[path.length - 1];
-        const distance = calculateDistance(...lastPos, ...coords);
-        totalDistance += distance;
+        totalDistance += calculateDistance(...lastPos, ...coords);
     }
     
-    // Guardar ruta
+    // Actualizar marcador y ruta
+    playerMarker.setLatLng(coords);
     path.push(coords);
     playerRoute.setLatLngs(path);
-    
-    // Centrar mapa (suavemente)
-    map.panTo(coords, { animate: true, duration: 1 });
     
     // Actualizar UI
     updateUI(speed);
 }
 
-function updateUI(speed = 0) {
-    document.getElementById('distance').textContent = (totalDistance / 1000).toFixed(2) + ' km';
-    document.getElementById('speed').textContent = speed ? (speed * 3.6).toFixed(1) + ' km/h' : '0.0 km/h';
+// Funciones de ayuda
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+}
+
+function startTimer() {
+    clearInterval(timerInterval);
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
 }
 
 function updateTimer() {
     if (!startTime) return;
     
     const elapsed = Math.floor((new Date() - startTime) / 1000);
-    const hours = Math.floor(elapsed / 3600);
-    const minutes = Math.floor((elapsed % 3600) / 60);
-    const seconds = elapsed % 60;
-    
     document.getElementById('time').textContent = 
-        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        `${Math.floor(elapsed / 3600).toString().padStart(2, '0')}:` +
+        `${Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0')}:` +
+        `${(elapsed % 60).toString().padStart(2, '0')}`;
 }
 
-// Resto de funciones (pauseTracking, stopTracking, calculateDistance, etc.) se mantienen igual
+function updateUI(speed = 0) {
+    document.getElementById('distance').textContent = (totalDistance / 1000).toFixed(2) + ' km';
+    document.getElementById('speed').textContent = (speed * 3.6).toFixed(1) + ' km/h';
+}
 
-// Modo Multijugador
+function updateMapView(coords) {
+    if (!isPaused) {
+        map.setView(coords, map.getZoom(), {
+            animate: true,
+            duration: 0.5
+        });
+    }
+}
+
+function updateControlButtons() {
+    startBtn.disabled = isTracking && !isPaused;
+    pauseBtn.disabled = !isTracking || isPaused;
+    stopBtn.disabled = !isTracking;
+    
+    startBtn.innerHTML = isTracking && isPaused ? 
+        '<i class="fas fa-redo"></i> Reanudar' : 
+        '<i class="fas fa-play"></i> Inicio';
+}
+
+// Funciones multijugador
 function toggleMultiplayerMode() {
     multiplayerMode = !multiplayerMode;
+    
     multiplayerBtn.textContent = `Multijugador: ${multiplayerMode ? 'ON' : 'OFF'}`;
     multiplayerBtn.style.background = multiplayerMode ? '#2ecc71' : '#e74c3c';
     multiplayerControls.classList.toggle('hidden', !multiplayerMode);
     
     if (!multiplayerMode) {
-        Object.values(otherPlayers).forEach(player => {
-            map.removeLayer(player.marker);
-            if (player.route) map.removeLayer(player.route);
-        });
-        otherPlayers = {};
-        updatePlayersList();
+        clearOtherPlayers();
+    } else if (!isTracking) {
+        startTracking();
     }
+}
+
+function joinRoom() {
+    const roomId = roomIdInput.value.trim();
+    if (roomId && socket) {
+        socket.emit('joinRoom', roomId);
+    } else {
+        alert("Por favor ingresa un ID de sala válido");
+    }
+}
+
+function clearOtherPlayers() {
+    Object.values(otherPlayers).forEach(player => {
+        map.removeLayer(player.marker);
+        if (player.route) map.removeLayer(player.route);
+    });
+    otherPlayers = {};
+    updatePlayersList();
+}
+
+function sendPlayerUpdate(coords, speed) {
+    socket.emit('playerUpdate', {
+        position: coords,
+        distance: totalDistance,
+        speed: (speed * 3.6).toFixed(1)
+    });
 }
 
 // Socket.io Handlers
@@ -152,8 +242,8 @@ socket.on('playerJoined', (playerId, playerData) => {
     if (!otherPlayers[playerId]) {
         const icon = L.divIcon({
             className: 'other-player-icon',
-            html: `<div class="other-player-marker" style="background:${getRandomColor()}"></div>`,
-            iconSize: [20, 20]
+            html: '<div style="background:#3498db;width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
+            iconSize: [22, 22]
         });
         
         otherPlayers[playerId] = {
@@ -175,11 +265,31 @@ socket.on('playerUpdate', (playerId, data) => {
     }
 });
 
+socket.on('playerLeft', (playerId) => {
+    if (otherPlayers[playerId]) {
+        map.removeLayer(otherPlayers[playerId].marker);
+        if (otherPlayers[playerId].route) {
+            map.removeLayer(otherPlayers[playerId].route);
+        }
+        delete otherPlayers[playerId];
+        updatePlayersList();
+    }
+});
+
+function updatePlayersList() {
+    playersList.innerHTML = '';
+    Object.entries(otherPlayers).forEach(([id, player]) => {
+        const playerElement = document.createElement('div');
+        playerElement.className = 'player-item';
+        playerElement.textContent = player.name;
+        playersList.appendChild(playerElement);
+    });
+}
+
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
     updateControlButtons();
     
-    // Solicitar permisos de geolocalización al cargar
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             pos => map.setView([pos.coords.latitude, pos.coords.longitude], 17),
