@@ -3,68 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Running Tracker - Multijugador</title>
-    <!-- Leaflet CSS -->
+    <title>Running Tracker</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css">
-    <!-- Font Awesome (iconos) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- CSS Personalizado -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div id="map"></div>
     
-    <!-- Panel de Control -->
-    <div id="controls">
-        <div class="metric-box">
-            <i class="fas fa-route"></i>
-            <span id="distance">0.00 km</span>
-        </div>
-        <div class="metric-box">
-            <i class="fas fa-tachometer-alt"></i>
-            <span id="speed">0.0 km/h</span>
-        </div>
-        <div class="metric-box">
-            <i class="fas fa-clock"></i>
-            <span id="time">00:00:00</span>
-        </div>
-        
-        <button id="multiplayer-btn" class="control-btn">
-            <i class="fas fa-users"></i> Multijugador: OFF
-        </button>
-        
-        <div id="multiplayer-controls" class="hidden">
-            <input type="text" id="room-id" placeholder="ID de Sala">
-            <button id="join-room" class="control-btn">
-                <i class="fas fa-door-open"></i> Unirse
-            </button>
-            <div id="players-list" class="players-list"></div>
-        </div>
-        
-        <div class="action-buttons">
-            <button id="center-btn" class="control-btn">
-                <i class="fas fa-location-arrow"></i> Centrar
-            </button>
-            <button id="export-gpx" class="control-btn">
-                <i class="fas fa-download"></i> GPX
-            </button>
-            <button id="stats-btn" class="control-btn">
-                <i class="fas fa-chart-bar"></i> Stats
-            </button>
-        </div>
+    <!-- Controles de Zoom -->
+    <div id="zoom-controls">
+        <button id="zoom-in"><i class="fas fa-search-plus"></i></button>
+        <button id="zoom-out"><i class="fas fa-search-minus"></i></button>
     </div>
     
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <!-- Socket.io -->
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- Leaflet.Offline (opcional) -->
-    <script src="https://unpkg.com/leaflet.offline@2.1.0/dist/leaflet.offline.min.js"></script>
-    <!-- JS Personalizado -->
-    <script src="js/socket.js"></script>
-    <script src="js/app.js"></script>
-    <div id="footer">
-    <a href="licenses.html">Licencias</a> | © 2023 Running Tracker
+    <!-- Panel de Control -->
+    <div id="controls">
+        <div class="metrics">
+            <div class="metric-box">
+                <i class="fas fa-route"></i>
+                <span id="distance">0.00 km</span>
+            </div>
+            <div class="metric-box">
+                <i class="fas fa-tachometer-alt"></i>
+                <span id="speed">0.0 km/h</span>
+            </div>
+            <div class="metric-box">
+                <i class="fas fa-clock"></i>
+                <span id="time">00:00:00</span>
+            </div>
+        </div>
+        
+        <div class="track-controls">
+            <button id="start-btn" class="control-btn start">
+                <i class="fas fa-play"></i> Iniciar
+            </button>
+            <button id="pause-btn" class="control-btn pause" disabled>
+                <i class="fas fa-pause"></i> Pausar
+            </button>
+            <button id="stop-btn" class="control-btn stop" disabled>
+                <i class="fas fa-stop"></i> Detener
+            </button>
+        </div>
+        
+        <button id="center-btn" class="control-btn">
+            <i class="fas fa-location-arrow"></i> Centrar
+        </button>
     </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/socket.js"></script>
 </body>
 </html>
