@@ -11,103 +11,105 @@ let startTime = null;
 let timerInterval = null;
 let isTracking = false;
 let isPaused = false;
+let trackingInterval = null;
 let multiplayerMode = false;
-let watchId = null;
 
 // Elementos UI
-const playerIcon = L.divIcon({
-    className: 'player-icon',
-    html: '<div style="background:#e74c3c;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 0 5px rgba(0,0,0,0.5);"></div>',
-    iconSize: [26, 26]
-});
+const multiplayerBtn = document.getElementById('multiplayer-btn');
+const multiplayerControls = document.getElementById('multiplayer-controls');
+const joinRoomBtn = document.getElementById('join-room');
+const roomIdInput = document.getElementById('room-id');
+const playersList = document.getElementById('players-list');
+const startBtn = document.getElementById('start-btn');
+const pauseBtn = document.getElementById('pause-btn');
+const stopBtn = document.getElementById('stop-btn');
+const zoomInBtn = document.getElementById('zoom-in');
+const zoomOutBtn = document.getElementById('zoom-out');
 
-const playerMarker = L.marker([0, 0], { icon: playerIcon }).addTo(map);
-const playerRoute = L.polyline([], { color: '#e74c3c', weight: 5 }).addTo(map);
+// Eventos
+multiplayerBtn.addEventListener('click', toggleMultiplayerMode);
+joinRoomBtn.addEventListener('click', joinRoom);
+startBtn.addEventListener('click', startTracking);
+pauseBtn.addEventListener('click', pauseTracking);
+stopBtn.addEventListener('click', stopTracking);
+zoomInBtn.addEventListener('click', () => map.zoomIn());
+zoomOutBtn.addEventListener('click', () => map.zoomOut());
 
-// Botones de control
-function setupUI() {
-    // Botones de tracking
-    const startBtn = document.getElementById('start-btn');
-    const pauseBtn = document.getElementById('pause-btn');
-    const stopBtn = document.getElementById('stop-btn');
-    
-    startBtn.addEventListener('click', startTracking);
-    pauseBtn.addEventListener('click', togglePause);
-    stopBtn.addEventListener('click', stopTracking);
-    
-    // Botones de zoom
-    document.getElementById('zoom-in').addEventListener('click', () => map.zoomIn());
-    document.getElementById('zoom-out').addEventListener('click', () => map.zoomOut());
-    
-    // Botón centrar
-    document.getElementById('center-btn').addEventListener('click', () => {
-        if (playerMarker.getLatLng().lat !== 0) {
-            map.setView(playerMarker.getLatLng(), 17);
-        }
-    });
-}
-
-// Funciones de tracking
+// Iniciar seguimiento GPS
 function startTracking() {
-    if (!isTracking) {
+    if (navigator.geolocation) {
         isTracking = true;
         isPaused = false;
-        startTime = new Date();
-        path = [];
-        totalDistance = 0;
         
-        document.getElementById('start-btn').disabled = true;
-        document.getElementById('pause-btn').disabled = false;
-        document.getElementById('stop-btn').disabled = false;
+        if (!startTime) {
+            startTime = new Date();
+        }
         
         updateTimer();
         timerInterval = setInterval(updateTimer, 1000);
         
-        watchId = navigator.geolocation.watchPosition(
+        trackingInterval = navigator.geolocation.watchPosition(
             updatePosition,
             handleGeolocationError,
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+            { 
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 10000 
+            }
         );
+        
+        updateControlButtons();
+    } else {
+        alert("Tu navegador no soporta geolocalización.");
     }
 }
 
-function togglePause() {
-    isPaused = !isPaused;
-    const pauseBtn = document.getElementById('pause-btn');
-    
-    if (isPaused) {
-        clearInterval(timerInterval);
-        navigator.geolocation.clearWatch(watchId);
-        pauseBtn.innerHTML = '<i class="fas fa-play"></i> Reanudar';
-    } else {
-        startTime = new Date(new Date() - (new Date() - startTime));
-        watchId = navigator.geolocation.watchPosition(
-            updatePosition,
-            handleGeolocationError,
-            { enableHighAccuracy: true }
-        );
-        timerInterval = setInterval(updateTimer, 1000);
-        pauseBtn.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+function pauseTracking() {
+    isPaused = true;
+    if (trackingInterval) {
+        navigator.geolocation.clearWatch(trackingInterval);
+        trackingInterval = null;
     }
+    clearInterval(timerInterval);
+    updateControlButtons();
 }
 
 function stopTracking() {
+    pauseTracking();
     isTracking = false;
-    isPaused = false;
-    
-    clearInterval(timerInterval);
-    navigator.geolocation.clearWatch(watchId);
-    
-    document.getElementById('start-btn').disabled = false;
-    document.getElementById('pause-btn').disabled = true;
-    document.getElementById('stop-btn').disabled = true;
-    document.getElementById('pause-btn').innerHTML = '<i class="fas fa-pause"></i> Pausar';
-    
-    saveRoute();
+    startTime = null;
+    path = [];
+    totalDistance = 0;
+    playerRoute.setLatLngs([]);
+    document.getElementById('distance').textContent = '0.00 km';
+    document.getElementById('speed').textContent = '0.0 km/h';
+    document.getElementById('time').textContent = '00:00:00';
+    updateControlButtons();
 }
+
+function updateControlButtons() {
+    startBtn.disabled = isTracking && !isPaused;
+    pauseBtn.disabled = !isTracking || isPaused;
+    stopBtn.disabled = !isTracking;
+    
+    if (!isTracking) {
+        startBtn.innerHTML = '<i class="fas fa-play"></i> Inicio';
+    } else {
+        startBtn.innerHTML = '<i class="fas fa-redo"></i> Reanudar';
+    }
+}
+
+// Resto del código manteniendo todas las funciones originales...
+// (updatePosition, calculateDistance, updateTimer, handleGeolocationError, 
+// toggleMultiplayerMode, joinRoom, updatePlayersList, etc.)
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', () => {
-    setupUI();
-    startTracking(); // Auto-iniciar al cargar (opcional)
+    updateControlButtons();
+    // Centrar mapa en ubicación del usuario si está disponible
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+            map.setView([pos.coords.latitude, pos.coords.longitude], 17);
+        });
+    }
 });
